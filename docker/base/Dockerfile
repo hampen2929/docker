@@ -1,7 +1,12 @@
 # base
+
+## CPU
+FROM ubuntu18.04
+
+## GPU
+# FROM nvidia/cuda:10.1-cudnn7-runtime-ubuntu18.04
 # FROM nvcr.io/nvidia/pytorch:19.12-py3
 # FROM nvcr.io/nvidia/pytorch:20.03-py3
-FROM nvidia/cuda:10.1-cudnn7-runtime-ubuntu18.04
 
 # init
 USER root

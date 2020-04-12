@@ -1,4 +1,4 @@
-FROM base_image
+FROM base_image_gpu
 
 # RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # RUN visudo -ca
@@ -94,7 +94,7 @@ RUN echo openvino >> ~/.bashrc
 
 # USER ubuntu
 CMD ["/bin/bash"]
-RUN sudo chown ubuntu:ubuntu /workspace/mount_host_directory
+RUN sudo chown ubuntu:ubuntu /workspace/
 RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 RUN visudo --c
 
