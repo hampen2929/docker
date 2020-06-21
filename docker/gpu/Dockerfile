@@ -1,10 +1,6 @@
 ################# base #################
-
-## CPU
-# FROM ubuntu18.04
-
 ## GPU
-FROM nvidia/cuda:10.1-cudnn7-runtime-ubuntu18.04
+FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
 # FROM nvcr.io/nvidia/pytorch:19.12-py3
 # FROM nvcr.io/nvidia/pytorch:20.03-py3
 
@@ -26,6 +22,7 @@ RUN gpasswd -a ubuntu video
 
 USER ubuntu 
 WORKDIR /workspace/
+ENV QT_X11_NO_MITSHM=1
 
 ################# dev #################
 
@@ -58,42 +55,18 @@ RUN conda config --add channels intel \
 SHELL ["/bin/bash", "-c"]
 
 # install packages
-RUN source activate idp \
-    && conda install numpy -c intel --no-update-deps \
-    && pip install jupyter 
+RUN conda install numpy -c intel --no-update-deps
+RUN pip install jupyter 
 RUN mkdir /home/ubuntu/.jupyter/
 RUN touch /home/ubuntu/.jupyter/jupyter_notebook_config.py
 
 RUN echo $'c.NotebookApp.ip = "*" \n\
 c.NotebookApp.notebook_dir = "/workspace/" \n\
-c.NotebookApp.port = 8888 \n'\
+c.NotebookApp.port = 8888 \n\
+c.NotebookApp.contents_manager_class = "jupytext.TextFileContentsManager" \n'\
 >> /home/ubuntu/.jupyter/jupyter_notebook_config.py
 
 RUN sudo chown ubuntu:ubuntu /home/ubuntu/.jupyter -R
-
-# openvino
-ARG DOWNLOAD_LINK=http://registrationcenter-download.intel.com/akdlm/irc_nas/15944/l_openvino_toolkit_p_2019.3.334_online.tgz
-ARG INSTALL_DIR=/opt/intel/openvino
-ARG TEMP_DIR=/tmp/openvino_installer
-
-RUN mkdir -p $TEMP_DIR && \
-    cd $TEMP_DIR && \
-    wget -c $DOWNLOAD_LINK && \
-    tar xf l_openvino_toolkit*.tgz && \
-    ls && \
-    cd l_openvino_toolkit_p_2019.3.334_online && \
-    source activate idp && \
-    sed -i 's/decline/accept/g' silent.cfg && \
-    ./install.sh -s silent.cfg && \
-    rm -rf $TEMP_DIR
-
-# build Inference Engine samples
-RUN source activate idp \
-    && $INSTALL_DIR/install_dependencies/install_openvino_dependencies.sh \
-    && mkdir $INSTALL_DIR/deployment_tools/inference_engine/samples/build && cd $INSTALL_DIR/deployment_tools/inference_engine/samples/build && \
-    /bin/bash -c "source $INSTALL_DIR/bin/setupvars.sh && cmake .. && make -j1"
-
-RUN echo "alias openvino='source /opt/intel/openvino/bin/setupvars.sh'" >> ~/.bashrc
 
 # CMAKE
 RUN apt-get update
@@ -109,20 +82,47 @@ RUN mkdir -p $TEMP_DIR && cd $TEMP_DIR \
     && sudo mv cmake-*-Linux-x86_64 /opt \
     && sudo ln -s /opt/cmake-3.16.2-Linux-x86_64/bin/* /usr/bin
 
+# openvino
+ARG DOWNLOAD_LINK=http://registrationcenter-download.intel.com/akdlm/irc_nas/16670/l_openvino_toolkit_p_2020.3.194_online.tgz
+ARG INSTALL_DIR=/opt/intel/openvino
+ARG TEMP_DIR=/tmp/openvino_installer
+
+RUN mkdir -p $TEMP_DIR && \
+    cd $TEMP_DIR && \
+    wget -c $DOWNLOAD_LINK && \
+    tar xf l_openvino_toolkit*.tgz && \
+    ls && \
+    cd l_openvino_toolkit_p_2020.3.194_online && \
+    sed -i 's/decline/accept/g' silent.cfg && \
+    ./install.sh -s silent.cfg && \
+    rm -rf $TEMP_DIR
+
+RUN /opt/intel/openvino/install_dependencies/install_openvino_dependencies.sh
+RUN source /opt/intel/openvino/bin/setupvars.sh
+RUN echo $'source /opt/intel/openvino/bin/setupvars.sh' >> ~/.bashrc
+
 # env path
 RUN echo LC_ALL=C.UTF-8  >> ~/.bashrc
 RUN echo LANG=C.UTF-8  >> ~/.bashrc
 
-# pyvino
-RUN echo source activate idp >> ~/.bashrc
-ENV PYTHONPATH /home/ubuntu/src_dir/pyvino/pyvino/model/human_pose_estimation/human_3d_pose_estimator/pose_extractor/build/:$PYTHONPATH
-RUN echo openvino >> ~/.bashrc
-
 # USER ubuntu
 CMD ["/bin/bash"]
-RUN sudo chown ubuntu:ubuntu /workspace/
+RUN chown ubuntu:ubuntu /workspace/ -R
+RUN chown ubuntu:ubuntu /opt/conda/lib/python3.6/site-packages/ -R
+RUN chown ubuntu:ubuntu /opt/conda/bin/ -R
+RUN chown ubuntu:ubuntu /opt/conda/share/jupyter/nbextensions/ -R
+RUN chown ubuntu:ubuntu /opt/conda/share/jupyter/ -R
+RUN chown ubuntu:ubuntu /opt/conda/etc/jupyter/ -R
+
 RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 RUN visudo --c
 
 USER ubuntu 
 WORKDIR /workspace
+
+# basic libiary
+
+ADD requirements.txt /tmp/
+RUN pip install -r /tmp/requirements.txt --user
+RUN pip install pycocotools==2.0 --user
+

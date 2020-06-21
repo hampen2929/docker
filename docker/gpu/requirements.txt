@@ -1,0 +1,17 @@
+Cython==0.29.16
+numba==0.48.0
+numpy==1.18.2
+progress==1.5
+matplotlib==3.2.1
+easydict==1.9
+scipy==1.4.1
+pyquaternion==0.9.5
+nuscenes-devkit==1.0.8
+tensorboard==2.2.1
+tensorflow==2.2.0rc3
+torchvision==0.5.0
+torch==1.4.0
+Pillow==6.2.1
+scikit-learn==0.21.3
+tensorflow-hub==0.8.0
+jupytext==1.5.0
